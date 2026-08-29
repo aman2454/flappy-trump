@@ -11,7 +11,8 @@
   const H = canvas.height;
   const CELL = 16;
   const COLS = Math.floor(W / CELL);
-  const ROWS = Math.floor(H / CELL);
+  const BOTTOM_MARGIN_ROWS = 3;
+  const ROWS = Math.floor(H / CELL) - BOTTOM_MARGIN_ROWS;
 
   const STATE = { READY: 0, PLAYING: 1, DEAD: 2 };
   let state = STATE.READY;
@@ -123,6 +124,10 @@
   function draw() {
     ctx.fillStyle = '#142218';
     ctx.fillRect(0, 0, W, H);
+
+    // Reserved bottom band (keeps grid clear of mobile browser chrome)
+    ctx.fillStyle = '#0a1510';
+    ctx.fillRect(0, ROWS * CELL, W, H - ROWS * CELL);
 
     ctx.fillStyle = '#2ecc71';
     ctx.fillRect(food.x * CELL, food.y * CELL, CELL - 1, CELL - 1);
