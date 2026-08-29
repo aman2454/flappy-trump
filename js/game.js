@@ -40,21 +40,21 @@
   let pipeTimer = 0;
   let groundOffset = 0;
 
+  let startGrace = 0;
+
   // --- Input ---
   function flap() {
     if (state === STATE.READY) {
       state = STATE.PLAYING;
+      startGrace = 15;
       instructions.classList.add('hidden');
       overlay.querySelector('h1').classList.add('hidden');
       bird.vel = JUMP;
       bird.flapFrame = 8;
-      return;
-    }
-    if (state === STATE.PLAYING) {
+    } else if (state === STATE.PLAYING) {
       bird.vel = JUMP;
       bird.flapFrame = 8;
-    }
-    if (state === STATE.DEAD) {
+    } else if (state === STATE.DEAD) {
       resetGame();
     }
   }
@@ -121,6 +121,8 @@
 
   // --- Collision ---
   function checkCollision() {
+    if (startGrace > 0) return false;
+
     const bx = BIRD_X;
     const by = bird.y;
     const br = bird.radius - 2;
@@ -357,6 +359,7 @@
       bird.rotation = Math.min(Math.max(bird.vel * 0.05, -0.5), 1.2);
 
       if (bird.flapFrame > 0) bird.flapFrame--;
+      if (startGrace > 0) startGrace--;
 
       updatePipes();
 
