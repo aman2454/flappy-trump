@@ -6,13 +6,10 @@
   const overlay = document.getElementById('overlay');
   const instructions = document.getElementById('instructions');
   const scoreDisplay = document.getElementById('score-display');
+  const container = document.getElementById('game-container');
 
-  const W = canvas.width;
-  const H = canvas.height;
-  const CELL = 16;
-  const COLS = Math.floor(W / CELL);
-  const BOTTOM_MARGIN_ROWS = 3;
-  const ROWS = Math.floor(H / CELL) - BOTTOM_MARGIN_ROWS;
+  const GRID_COLS = 18;
+  let W, H, CELL, COLS, ROWS;
 
   const STATE = { READY: 0, PLAYING: 1, DEAD: 2 };
   let state = STATE.READY;
@@ -20,8 +17,29 @@
   let best = parseInt(localStorage.getItem('snakeBest') || '0', 10);
   let snake, dir, nextDir, food, tick;
 
+  function layoutGame() {
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    if (cw < 1 || ch < 1) return;
+
+    COLS = GRID_COLS;
+    CELL = Math.max(8, Math.floor(cw / COLS));
+    ROWS = Math.max(12, Math.floor(ch / CELL));
+    W = COLS * CELL;
+    H = ROWS * CELL;
+    canvas.width = W;
+    canvas.height = H;
+  }
+
   function reset() {
-    snake = [{ x: 8, y: 15 }, { x: 7, y: 15 }, { x: 6, y: 15 }];
+    layoutGame();
+    const midX = Math.floor(COLS / 2);
+    const midY = Math.floor(ROWS / 2);
+    snake = [
+      { x: midX, y: midY },
+      { x: midX - 1, y: midY },
+      { x: midX - 2, y: midY },
+    ];
     dir = { x: 1, y: 0 };
     nextDir = { x: 1, y: 0 };
     spawnFood();
@@ -95,6 +113,16 @@
     if (e.code === 'ArrowRight') setDir(1, 0);
   });
 
+  function onViewportChange() {
+    if (state === STATE.PLAYING) return;
+    layoutGame();
+  }
+
+  window.addEventListener('resize', onViewportChange);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onViewportChange);
+  }
+
   function update() {
     if (state !== STATE.PLAYING) return;
     tick++;
@@ -125,10 +153,6 @@
     ctx.fillStyle = '#142218';
     ctx.fillRect(0, 0, W, H);
 
-    // Reserved bottom band (keeps grid clear of mobile browser chrome)
-    ctx.fillStyle = '#0a1510';
-    ctx.fillRect(0, ROWS * CELL, W, H - ROWS * CELL);
-
     ctx.fillStyle = '#2ecc71';
     ctx.fillRect(food.x * CELL, food.y * CELL, CELL - 1, CELL - 1);
 
@@ -158,7 +182,15 @@
     }
   }
 
-  reset();
-  function loop() { update(); draw(); requestAnimationFrame(loop); }
-  loop();
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  requestAnimationFrame(() => {
+    reset();
+    state = STATE.READY;
+    loop();
+  });
 })();

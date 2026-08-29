@@ -1,6 +1,12 @@
-body { background: #1a472a; }
-#game-container { background: #1a472a; }
-#game-canvas {
+body,
+#game-container {
   background: #142218;
-  object-fit: contain;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  background: #142218;
 }
