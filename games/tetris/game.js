@@ -6,12 +6,12 @@
   const instructions = document.getElementById('instructions');
   const scoreDisplay = document.getElementById('score-display');
   const title = document.querySelector('#overlay h1');
+  const container = document.getElementById('game-container');
 
-  const W = canvas.width, H = canvas.height;
-  const COLS = 10, ROWS = 20;
-  const CELL = W / COLS;
-  const BOARD_H = ROWS * CELL;
-  const OFFSET_Y = (H - BOARD_H) / 2;
+  const GRID_COLS = 10;
+  const GRID_ROWS = 20;
+
+  let W, H, CELL, COLS, ROWS;
 
   const SHAPES = {
     I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
@@ -26,6 +26,20 @@
 
   let board, piece, score, lines, dropTimer, playing, dead, touchStart;
 
+  function layoutGame() {
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    if (cw < 1 || ch < 1) return;
+
+    COLS = GRID_COLS;
+    ROWS = GRID_ROWS;
+    CELL = Math.max(8, Math.floor(Math.min(cw / COLS, ch / ROWS)));
+    W = COLS * CELL;
+    H = ROWS * CELL;
+    canvas.width = W;
+    canvas.height = H;
+  }
+
   function emptyBoard() {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
   }
@@ -37,6 +51,7 @@
   }
 
   function reset() {
+    layoutGame();
     board = emptyBoard();
     piece = randomPiece();
     score = 0;
@@ -173,6 +188,16 @@
     if (e.code === 'Space') hardDrop();
   });
 
+  function onViewportChange() {
+    if (playing && !dead) return;
+    layoutGame();
+  }
+
+  window.addEventListener('resize', onViewportChange);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onViewportChange);
+  }
+
   function update() {
     if (!playing || dead) return;
     dropTimer++;
@@ -186,14 +211,14 @@
 
   function drawCell(x, y, type) {
     ctx.fillStyle = COLORS[type] || '#888';
-    ctx.fillRect(x * CELL + 1, OFFSET_Y + y * CELL + 1, CELL - 2, CELL - 2);
+    ctx.fillRect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2);
   }
 
   function draw() {
     ctx.fillStyle = '#111820';
     ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = '#2a3545';
-    ctx.strokeRect(0.5, OFFSET_Y + 0.5, W - 1, BOARD_H - 1);
+    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
 
     board.forEach((row, y) => row.forEach((c, x) => { if (c) drawCell(x, y, c); }));
 
@@ -206,7 +231,7 @@
     ctx.fillStyle = '#fff';
     ctx.font = '14px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText('Lines: ' + lines, 8, OFFSET_Y - 8);
+    ctx.fillText('Lines: ' + lines, 8, 18);
 
     if (dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.65)';

@@ -38,9 +38,10 @@
   const OX = (W - COLS * CELL) / 2;
   const OY = 36;
 
-  let pac, dir, nextDir, ghosts, dots, score, lives, playing, won, dead, touchStart, tick;
+  const MOVE_INTERVAL = 14;
+  const GHOST_INTERVAL = 18;
 
-  let maze;
+  let pac, dir, nextDir, ghosts, dots, score, lives, playing, won, dead, touchStart, tick, maze;
 
   function isWall(x, y) {
     if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return true;
@@ -59,9 +60,9 @@
     dir = { x: 0, y: 0 };
     nextDir = { x: 0, y: 0 };
     ghosts = [
-      { x: 8, y: 9, color: '#ff0000' },
-      { x: 9, y: 9, color: '#ffb8ff' },
-      { x: 10, y: 9, color: '#00ffff' },
+      { x: 8, y: 9, color: '#ff0000', eye: '#fff' },
+      { x: 9, y: 9, color: '#ffb8ff', eye: '#fff' },
+      { x: 10, y: 9, color: '#00ffff', eye: '#fff' },
     ];
     dots = 0;
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (isDot(x, y)) dots++;
@@ -124,7 +125,7 @@
     opts.sort((a, b) => {
       const da = Math.hypot(pac.x - (g.x + a[0]), pac.y - (g.y + a[1]));
       const db = Math.hypot(pac.x - (g.x + b[0]), pac.y - (g.y + b[1]));
-      return da - db + (Math.random() - 0.5) * 2;
+      return da - db + (Math.random() - 0.5) * 3;
     });
     g.x += opts[0][0];
     g.y += opts[0][1];
@@ -133,7 +134,7 @@
   function update() {
     if (!playing || dead || won) return;
     tick++;
-    if (tick % 8 !== 0) return;
+    if (tick % MOVE_INTERVAL !== 0) return;
 
     if (canMove(pac.x, pac.y, nextDir.x, nextDir.y)) dir = nextDir;
     if (canMove(pac.x, pac.y, dir.x, dir.y)) {
@@ -148,16 +149,66 @@
       }
     }
 
-    if (tick % 16 === 0) ghosts.forEach(moveGhost);
+    if (tick % GHOST_INTERVAL === 0) ghosts.forEach(moveGhost);
 
     for (const g of ghosts) {
       if (g.x === pac.x && g.y === pac.y) {
         lives--;
         if (lives <= 0) { dead = true; playing = false; }
-        else { pac = { x: 9, y: 15, mouth: 0 }; dir = { x: 0, y: 0 }; }
+        else { pac = { x: 9, y: 15, mouth: 0 }; dir = { x: 0, y: 0 }; nextDir = { x: 0, y: 0 }; }
       }
     }
-    pac.mouth = (pac.mouth + 1) % 4;
+    pac.mouth = (pac.mouth + 1) % 6;
+  }
+
+  function drawPac(px, py, r) {
+    const mouthOpen = pac.mouth < 3 ? 0.45 : 0.08;
+    let angle = 0;
+    if (dir.x === 1) angle = 0;
+    else if (dir.x === -1) angle = Math.PI;
+    else if (dir.y === 1) angle = Math.PI / 2;
+    else if (dir.y === -1) angle = -Math.PI / 2;
+
+    ctx.fillStyle = '#ffff00';
+    ctx.beginPath();
+    ctx.arc(px, py, r, angle + mouthOpen, angle - mouthOpen, true);
+    ctx.lineTo(px, py);
+    ctx.fill();
+
+    ctx.strokeStyle = '#cc9900';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const eyeOffset = r * 0.35;
+    const eyeX = px + Math.cos(angle) * eyeOffset * 0.5 - Math.sin(angle) * eyeOffset * 0.6;
+    const eyeY = py + Math.sin(angle) * eyeOffset * 0.5 + Math.cos(angle) * eyeOffset * 0.6;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawGhost(g, px, py, r) {
+    ctx.fillStyle = g.color;
+    ctx.beginPath();
+    ctx.arc(px, py - r * 0.1, r, Math.PI, 0);
+    ctx.lineTo(px + r, py + r * 0.85);
+    for (let i = 2; i >= 0; i--) {
+      ctx.lineTo(px + r * (i * 0.66 - 0.33), py + r * (i % 2 === 0 ? 0.55 : 0.85));
+    }
+    ctx.lineTo(px - r, py + r * 0.85);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(px - r * 0.35, py - r * 0.05, r * 0.28, 0, Math.PI * 2);
+    ctx.arc(px + r * 0.35, py - r * 0.05, r * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#00f';
+    ctx.beginPath();
+    ctx.arc(px - r * 0.35, py - r * 0.05, r * 0.14, 0, Math.PI * 2);
+    ctx.arc(px + r * 0.35, py - r * 0.05, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function draw() {
@@ -170,42 +221,23 @@
         const px = OX + x * CELL;
         const py = OY + y * CELL;
         if (c === '#') {
-          ctx.strokeStyle = '#2121de';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
-        } else if (c === '.' || c === ' ') {
-          if (c === '.') {
-            ctx.fillStyle = '#ffb897';
-            ctx.beginPath();
-            ctx.arc(px + CELL / 2, py + CELL / 2, 2, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.fillStyle = '#2121de';
+          ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+          ctx.strokeStyle = '#4a4aff';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(px + 1.5, py + 1.5, CELL - 3, CELL - 3);
+        } else if (c === '.') {
+          ctx.fillStyle = '#ffb897';
+          ctx.beginPath();
+          ctx.arc(px + CELL / 2, py + CELL / 2, Math.max(2, CELL * 0.08), 0, Math.PI * 2);
+          ctx.fill();
         }
       }
     }
 
-    const px = OX + pac.x * CELL + CELL / 2;
-    const py = OY + pac.y * CELL + CELL / 2;
-    ctx.fillStyle = '#ffff00';
-    ctx.beginPath();
-    const open = pac.mouth < 2 ? 0.4 : 0.05;
-    let angle = 0;
-    if (dir.x === 1) angle = 0;
-    else if (dir.x === -1) angle = Math.PI;
-    else if (dir.y === 1) angle = Math.PI / 2;
-    else if (dir.y === -1) angle = -Math.PI / 2;
-    ctx.arc(px, py, CELL * 0.38, angle + open, angle - open, true);
-    ctx.lineTo(px, py);
-    ctx.fill();
-
-    ghosts.forEach(g => {
-      ctx.fillStyle = g.color;
-      ctx.beginPath();
-      ctx.arc(OX + g.x * CELL + CELL / 2, OY + g.y * CELL + CELL / 2, CELL * 0.35, Math.PI, 0);
-      ctx.lineTo(OX + g.x * CELL + CELL - 4, OY + g.y * CELL + CELL - 2);
-      ctx.lineTo(OX + g.x * CELL + 4, OY + g.y * CELL + CELL - 2);
-      ctx.fill();
-    });
+    const r = CELL * 0.4;
+    drawPac(OX + pac.x * CELL + CELL / 2, OY + pac.y * CELL + CELL / 2, r);
+    ghosts.forEach(g => drawGhost(g, OX + g.x * CELL + CELL / 2, OY + g.y * CELL + CELL / 2, r * 0.95));
 
     ctx.fillStyle = '#fff';
     ctx.font = '14px Arial';

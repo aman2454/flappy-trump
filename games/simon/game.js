@@ -8,18 +8,27 @@
   const title = document.querySelector('#overlay h1');
 
   const W = canvas.width, H = canvas.height;
-  const CX = W / 2, CY = H / 2 + 10;
-  const R = Math.min(W, H) * 0.38;
-  const GAP = 8;
+  const COLS = 3, ROWS = 3;
+  const PAD = 20;
+  const GAP = 10;
+  const GRID_W = W - PAD * 2;
+  const GRID_H = H - PAD * 2 - 20;
+  const CELL_W = (GRID_W - GAP * (COLS - 1)) / COLS;
+  const CELL_H = (GRID_H - GAP * (ROWS - 1)) / ROWS;
+  const OX = PAD, OY = PAD + 16;
 
-  const PADS = [
-    { id: 0, color: '#e74c3c', lit: '#ff6b6b', start: -Math.PI / 2, end: 0 },
-    { id: 1, color: '#27ae60', lit: '#6bff8a', start: 0, end: Math.PI / 2 },
-    { id: 2, color: '#f1c40f', lit: '#ffe066', start: Math.PI / 2, end: Math.PI },
-    { id: 3, color: '#3498db', lit: '#74c0fc', start: Math.PI, end: Math.PI * 1.5 },
+  const COLORS = [
+    '#e74c3c', '#27ae60', '#3498db',
+    '#f1c40f', '#9b59b6', '#e67e22',
+    '#1abc9c', '#ff6b6b', '#4d96ff',
+  ];
+  const LIT = [
+    '#ff8a8a', '#6bff8a', '#74c0fc',
+    '#ffe066', '#d4a5ff', '#ffb347',
+    '#5dffe0', '#ff9999', '#8ec5ff',
   ];
 
-  let sequence, step, playing, showing, litPad, over, best, touchStart;
+  let sequence, step, playing, showing, litPad, over, best;
 
   function reset() {
     sequence = [];
@@ -34,8 +43,10 @@
     title.classList.remove('hidden');
   }
 
+  function padCount() { return COLS * ROWS; }
+
   function startRound() {
-    sequence.push(Math.floor(Math.random() * 4));
+    sequence.push(Math.floor(Math.random() * padCount()));
     step = 0;
     showSequence();
   }
@@ -46,7 +57,7 @@
     function flash() {
       if (i >= sequence.length) { showing = false; litPad = -1; return; }
       litPad = sequence[i];
-      setTimeout(() => { litPad = -1; i++; setTimeout(flash, 200); }, 450);
+      setTimeout(() => { litPad = -1; i++; setTimeout(flash, 180); }, 400);
     }
     flash();
   }
@@ -62,15 +73,14 @@
   }
 
   function padAt(x, y) {
-    const dx = x - CX, dy = y - CY;
-    const dist = Math.hypot(dx, dy);
-    if (dist < R * 0.28 || dist > R) return -1;
-    let angle = Math.atan2(dy, dx);
-    if (angle < -Math.PI / 2) angle += Math.PI * 2;
-    for (const p of PADS) {
-      let a = angle;
-      if (p.id === 0 && a > Math.PI) a -= Math.PI * 2;
-      if (a >= p.start && a < p.end) return p.id;
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        const px = OX + col * (CELL_W + GAP);
+        const py = OY + row * (CELL_H + GAP);
+        if (x >= px && x <= px + CELL_W && y >= py && y <= py + CELL_H) {
+          return row * COLS + col;
+        }
+      }
     }
     return -1;
   }
@@ -78,7 +88,7 @@
   function tapPad(id) {
     if (!playing || showing || over) return;
     litPad = id;
-    setTimeout(() => { if (litPad === id) litPad = -1; }, 180);
+    setTimeout(() => { if (litPad === id) litPad = -1; }, 160);
     if (id !== sequence[step]) {
       over = true;
       playing = false;
@@ -91,7 +101,7 @@
     step++;
     if (step >= sequence.length) {
       scoreDisplay.textContent = sequence.length;
-      setTimeout(startRound, 600);
+      setTimeout(startRound, 550);
     }
   }
 
@@ -104,44 +114,36 @@
     else start();
   }
 
-  canvas.addEventListener('touchstart', e => {
-    e.preventDefault();
-    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, { passive: false });
-
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
   canvas.addEventListener('touchend', e => {
     e.preventDefault();
-    const t = e.changedTouches[0];
-    handleTap(t.clientX, t.clientY);
-    touchStart = null;
+    handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
   }, { passive: false });
-
   canvas.addEventListener('click', e => handleTap(e.clientX, e.clientY));
-
-  function drawPad(p) {
-    ctx.beginPath();
-    ctx.arc(CX, CY, R, p.start + GAP / R, p.end - GAP / R);
-    ctx.arc(CX, CY, R * 0.28, p.end - GAP / R, p.start + GAP / R, true);
-    ctx.closePath();
-    ctx.fillStyle = litPad === p.id ? p.lit : p.color;
-    ctx.fill();
-  }
 
   function draw() {
     ctx.fillStyle = '#0f0f1a';
     ctx.fillRect(0, 0, W, H);
 
-    PADS.forEach(drawPad);
-
-    ctx.beginPath();
-    ctx.arc(CX, CY, R * 0.26, 0, Math.PI * 2);
-    ctx.fillStyle = '#222';
-    ctx.fill();
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        const id = row * COLS + col;
+        const px = OX + col * (CELL_W + GAP);
+        const py = OY + row * (CELL_H + GAP);
+        ctx.fillStyle = litPad === id ? LIT[id] : COLORS[id];
+        ctx.beginPath();
+        ctx.roundRect(px, py, CELL_W, CELL_H, 12);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
 
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px Arial';
+    ctx.font = 'bold 15px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(playing ? 'Level ' + sequence.length : 'Tap center', CX, CY + 6);
+    ctx.fillText(playing ? 'Level ' + sequence.length : 'Tap a pad to start', W / 2, 22);
 
     if (over) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
