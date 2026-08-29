@@ -9,7 +9,8 @@
 
   const W = canvas.width, H = canvas.height;
   let player, invaders, bullets, enemyBullets, score, frame, dir, gameOver, started;
-  let touchStart = null;
+  let touchOrigin = null;
+  let touchLast = null;
   let touchMoved = false;
 
   function reset() {
@@ -54,9 +55,12 @@
     return true;
   }
 
-  function movePlayerFromClientX(clientX) {
-    const rect = canvas.getBoundingClientRect();
-    player.x = ((clientX - rect.left) / rect.width) * W;
+  function canvasScaleX() {
+    return W / canvas.getBoundingClientRect().width;
+  }
+
+  function nudgePlayer(dxScreen) {
+    player.x += dxScreen * canvasScaleX();
     player.x = Math.max(14, Math.min(W - 14, player.x));
   }
 
@@ -66,36 +70,38 @@
       tryRetry();
       return;
     }
-    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    touchOrigin = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    touchLast = { x: touchOrigin.x, y: touchOrigin.y };
     touchMoved = false;
-    movePlayerFromClientX(e.touches[0].clientX);
     start();
   }, { passive: false });
 
   canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
-    if (!touchStart || gameOver || !started) return;
-    touchMoved = true;
-    movePlayerFromClientX(e.touches[0].clientX);
+    if (!touchOrigin || gameOver || !started) return;
+    const x = e.touches[0].clientX;
+    const dx = x - touchLast.x;
+    if (Math.abs(x - touchOrigin.x) > 10) touchMoved = true;
+    if (Math.abs(dx) > 1) {
+      nudgePlayer(dx);
+      touchLast.x = x;
+    }
   }, { passive: false });
 
   canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
-    if (!touchStart) return;
+    if (!touchOrigin) return;
     const t = e.changedTouches[0];
-    const dx = t.clientX - touchStart.x;
-    const dy = t.clientY - touchStart.y;
-    touchStart = null;
+    const totalDx = t.clientX - touchOrigin.x;
+    const totalDy = t.clientY - touchOrigin.y;
 
-    if (!touchMoved && Math.abs(dx) < 28 && Math.abs(dy) < 28 && started && !gameOver) {
+    if (Math.abs(totalDx) < 28 && Math.abs(totalDy) < 28 && started && !gameOver) {
       fire();
     }
+    touchOrigin = null;
+    touchLast = null;
+    touchMoved = false;
   }, { passive: false });
-
-  canvas.addEventListener('mousemove', (e) => {
-    if (!started || gameOver) return;
-    movePlayerFromClientX(e.clientX);
-  });
 
   canvas.addEventListener('click', (e) => {
     if (gameOver) {
@@ -106,7 +112,6 @@
       start();
       return;
     }
-    movePlayerFromClientX(e.clientX);
     fire();
   });
 

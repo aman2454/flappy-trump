@@ -60,21 +60,8 @@
     nextDir = { x, y };
   }
 
-  document.querySelectorAll('#dpad .touch-btn').forEach(btn => {
-    const go = (e) => {
-      e.preventDefault();
-      if (tryRestart()) return;
-      const d = btn.dataset.dir;
-      if (d === 'up') setDir(0, -1);
-      if (d === 'down') setDir(0, 1);
-      if (d === 'left') setDir(-1, 0);
-      if (d === 'right') setDir(1, 0);
-    };
-    btn.addEventListener('touchstart', go, { passive: false });
-    btn.addEventListener('click', go);
-  });
-
   let touchStart = null;
+
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
     touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
