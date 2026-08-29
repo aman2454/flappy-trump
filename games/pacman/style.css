@@ -1,0 +1,3 @@
+body { background: #000; }
+#game-container { background: #000; }
+#game-canvas { object-fit: fill; background: #000; }

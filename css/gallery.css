@@ -85,6 +85,16 @@ body {
 .game-thumb.breakout { background: linear-gradient(180deg, #4a1942, #7b2d8e); }
 .game-thumb.invaders { background: linear-gradient(180deg, #0a0a20, #1a1a40); }
 .game-thumb.asteroids { background: linear-gradient(180deg, #0d0d0d, #1a1a2e); }
+.game-thumb.tetris { background: linear-gradient(180deg, #1a2535, #2a3a55); }
+.game-thumb.two048 { background: linear-gradient(180deg, #bbada0, #8f7a66); }
+.game-thumb.simon { background: linear-gradient(180deg, #1a1a2e, #16213e); }
+.game-thumb.frogger { background: linear-gradient(180deg, #1a3a1a, #2d5016); }
+.game-thumb.pacman { background: linear-gradient(180deg, #000, #2121de); }
+.game-thumb.dino { background: linear-gradient(180deg, #f7f7f7, #ddd); }
+.game-thumb.missile { background: linear-gradient(180deg, #0a0a0a, #1a2a1a); }
+.game-thumb.galaga { background: linear-gradient(180deg, #050510, #1a1040); }
+.game-thumb.racer { background: linear-gradient(180deg, #444, #222); }
+.game-thumb.whack { background: linear-gradient(180deg, #5d4037, #3e2723); }
 
 .game-info {
   padding: 12px 14px 14px;
