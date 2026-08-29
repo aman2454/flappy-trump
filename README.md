@@ -1,21 +1,24 @@
-# Flappy Trump
+# Arcade Gallery
 
-A Flappy Bird clone with the same rules and physics as the original — tap to flap, avoid the pipes, don't hit the ground.
-
-The bird is Donald Trump's head, and each tap makes two little hands flap where the wings would be.
+A mobile-friendly collection of classic touch arcade games.
 
 ## Play
 
-Open `index.html` locally, or play the deployed version on GitHub Pages after pushing to `main`.
+Open the site and pick a game from the gallery. Every game has a **← Gallery** button to return home.
 
-## Controls
+**Live:** https://aman2454.github.io/flappy-trump/
 
-- **Tap / Click** — flap
-- **Space / Up Arrow** — flap
-- **Tap after game over** — restart
+## Games
+
+| Game | Controls |
+|------|----------|
+| Flappy Trump | Tap to flap |
+| Snake | Swipe or D-pad |
+| Pong | Drag paddle |
+| Breakout | Drag paddle |
+| Space Invaders | Move + fire buttons |
+| Asteroids | Turn, thrust, fire |
 
 ## Deploy
 
-Pushes to `main` automatically deploy to GitHub Pages via the workflow in `.github/workflows/deploy.yml`.
-
-After the first push, enable GitHub Pages in the repo settings: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+Pushes to `main` deploy to GitHub Pages via `.github/workflows/deploy.yml`.

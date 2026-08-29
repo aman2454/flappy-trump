@@ -1,0 +1,112 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: #0a0a12;
+  color: #fff;
+  font-family: 'Arial Black', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  padding: max(20px, env(safe-area-inset-top, 0px) + 16px)
+           max(16px, env(safe-area-inset-right, 0px) + 12px)
+           max(24px, env(safe-area-inset-bottom, 0px) + 16px)
+           max(16px, env(safe-area-inset-left, 0px) + 12px);
+}
+
+.gallery-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.gallery-header h1 {
+  font-size: clamp(28px, 8vw, 42px);
+  background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+
+.gallery-header p {
+  margin-top: 8px;
+  color: #888;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.game-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: linear-gradient(160deg, #1a1a28 0%, #12121c 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #2a2a3a;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.game-card:active {
+  transform: scale(0.97);
+}
+
+.game-card:hover {
+  border-color: #4d96ff;
+  box-shadow: 0 8px 24px rgba(77, 150, 255, 0.2);
+}
+
+.game-thumb {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  position: relative;
+}
+
+.game-thumb.flappy { background: linear-gradient(180deg, #4ec0ca, #70c5ce); }
+.game-thumb.snake { background: linear-gradient(180deg, #1a472a, #2d5a3d); }
+.game-thumb.pong { background: linear-gradient(180deg, #111, #222); }
+.game-thumb.breakout { background: linear-gradient(180deg, #4a1942, #7b2d8e); }
+.game-thumb.invaders { background: linear-gradient(180deg, #0a0a20, #1a1a40); }
+.game-thumb.asteroids { background: linear-gradient(180deg, #0d0d0d, #1a1a2e); }
+
+.game-info {
+  padding: 12px 14px 14px;
+}
+
+.game-info h2 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.game-info span {
+  font-size: 11px;
+  color: #777;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+}
+
+.gallery-footer {
+  text-align: center;
+  margin-top: 32px;
+  color: #555;
+  font-size: 12px;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+}

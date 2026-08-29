@@ -3,18 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Flappy Trump</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Arcade Gallery</title>
+  <link rel="stylesheet" href="css/gallery.css">
 </head>
 <body>
-  <div id="game-container">
-    <canvas id="game-canvas" width="288" height="512"></canvas>
-    <div id="overlay">
-      <h1>Flappy Trump</h1>
-      <p id="instructions">Tap or press Space to flap</p>
-      <p id="score-display"></p>
-    </div>
-  </div>
-  <script src="js/game.js?v=4"></script>
+  <header class="gallery-header">
+    <h1>Arcade Gallery</h1>
+    <p>Classic touch arcade — pick a game</p>
+  </header>
+
+  <main class="game-grid">
+    <a class="game-card" href="games/flappy-trump/">
+      <div class="game-thumb flappy">🟠</div>
+      <div class="game-info">
+        <h2>Flappy Trump</h2>
+        <span>Tap to flap</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="games/snake/">
+      <div class="game-thumb snake">🐍</div>
+      <div class="game-info">
+        <h2>Snake</h2>
+        <span>Swipe to steer</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="games/pong/">
+      <div class="game-thumb pong">🏓</div>
+      <div class="game-info">
+        <h2>Pong</h2>
+        <span>Drag your paddle</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="games/breakout/">
+      <div class="game-thumb breakout">🧱</div>
+      <div class="game-info">
+        <h2>Breakout</h2>
+        <span>Break all bricks</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="games/space-invaders/">
+      <div class="game-thumb invaders">👾</div>
+      <div class="game-info">
+        <h2>Space Invaders</h2>
+        <span>Shoot the invaders</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="games/asteroids/">
+      <div class="game-thumb asteroids">☄️</div>
+      <div class="game-info">
+        <h2>Asteroids</h2>
+        <span>Survive the rocks</span>
+      </div>
+    </a>
+  </main>
+
+  <footer class="gallery-footer">
+    More games coming soon
+  </footer>
 </body>
 </html>
