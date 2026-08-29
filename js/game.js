@@ -184,6 +184,12 @@
     ctx.fill();
   }
 
+  function headlineAt(index) {
+    let i = index % GROUND_HEADLINES.length;
+    if (i < 0) i += GROUND_HEADLINES.length;
+    return GROUND_HEADLINES[i];
+  }
+
   function drawGround() {
     const groundY = H - GROUND_HEIGHT;
     groundOffset = (groundOffset + PIPE_SPEED) % 180;
@@ -201,15 +207,15 @@
     const bannerH = 22;
     const bannerY = groundY + 22;
     for (let x = -groundOffset; x < W + bannerW; x += bannerW + 12) {
-      drawGroundBanner(x, bannerY, bannerW, bannerH);
+      const idx = Math.floor(x / (bannerW + 12));
+      drawGroundBanner(x, bannerY, bannerW, bannerH, headlineAt(idx));
     }
 
     // Second row of smaller signs
     const signY = groundY + 58;
     for (let x = -groundOffset * 0.7 - 40; x < W + 100; x += 110) {
-      let idx = Math.floor((x + groundOffset * 0.7) / 110) % GROUND_HEADLINES.length;
-      if (idx < 0) idx += GROUND_HEADLINES.length;
-      drawGroundSign(x, signY, GROUND_HEADLINES[idx]);
+      const idx = Math.floor((x + groundOffset * 0.7) / 110);
+      drawGroundSign(x, signY, headlineAt(idx));
     }
 
     // Reflecting pool puddle gag (scrolls with ground)
@@ -228,9 +234,8 @@
     }
   }
 
-  function drawGroundBanner(x, y, w, h) {
-    const idx = Math.abs(Math.floor(x / (w + 12))) % GROUND_HEADLINES.length;
-    const text = GROUND_HEADLINES[idx];
+  function drawGroundBanner(x, y, w, h, text) {
+    if (!text) return;
 
     ctx.fillStyle = '#8b0000';
     ctx.fillRect(x, y, w, h);
