@@ -207,7 +207,8 @@
     // Second row of smaller signs
     const signY = groundY + 58;
     for (let x = -groundOffset * 0.7 - 40; x < W + 100; x += 110) {
-      const idx = Math.floor((x + groundOffset * 0.7) / 110) % GROUND_HEADLINES.length;
+      let idx = Math.floor((x + groundOffset * 0.7) / 110) % GROUND_HEADLINES.length;
+      if (idx < 0) idx += GROUND_HEADLINES.length;
       drawGroundSign(x, signY, GROUND_HEADLINES[idx]);
     }
 
@@ -245,6 +246,7 @@
   }
 
   function drawGroundSign(x, y, text) {
+    if (!text) return;
     ctx.fillStyle = '#f5f0e1';
     ctx.fillRect(x, y, 96, 28);
     ctx.strokeStyle = '#333';
@@ -259,7 +261,7 @@
     ctx.font = 'bold 7px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const short = text.length > 18 ? text.slice(0, 16) + '…' : text;
+    const short = text.length > 18 ? text.slice(0, 16) + '...' : text;
     ctx.fillText(short, x + 48, y + 14);
   }
 
