@@ -406,7 +406,4 @@
   }
 
   loop();
-
-  // Expose state for automated testing only
-  window.__getGameState = () => ({ state, birdY: bird.y, birdVel: bird.vel, startGrace, score, pipeCount: pipes.length });
 })();
