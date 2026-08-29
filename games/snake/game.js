@@ -31,6 +31,14 @@
     canvas.height = H;
   }
 
+  function isUnderGalleryButton(x, y) {
+    const zoneW = 118;
+    const zoneH = 58;
+    const cols = Math.min(COLS, Math.ceil(zoneW / CELL));
+    const rows = Math.min(ROWS, Math.ceil(zoneH / CELL));
+    return x < cols && y < rows;
+  }
+
   function reset() {
     layoutGame();
     const midX = Math.floor(COLS / 2);
@@ -51,7 +59,10 @@
   function spawnFood() {
     do {
       food = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-    } while (snake.some(s => s.x === food.x && s.y === food.y));
+    } while (
+      snake.some(s => s.x === food.x && s.y === food.y) ||
+      isUnderGalleryButton(food.x, food.y)
+    );
   }
 
   function startPlaying() {
