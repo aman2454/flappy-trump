@@ -77,6 +77,7 @@
     bird.vel = 0;
     bird.rotation = 0;
     bird.flapFrame = 0;
+    startGrace = 0;
     pipes = [];
     pipeTimer = 0;
     groundOffset = 0;
@@ -405,4 +406,7 @@
   }
 
   loop();
+
+  // Expose state for automated testing only
+  window.__getGameState = () => ({ state, birdY: bird.y, birdVel: bird.vel, startGrace, score, pipeCount: pipes.length });
 })();
