@@ -39,9 +39,26 @@
   const OY = 36;
 
   const MOVE_INTERVAL = 14;
+  const TUNNEL_ROWS = [7, 9, 11];
 
   let pac, dir, nextDir, ghosts, dots, score, lives, level, playing, dead, touchStart, tick, maze;
   let ghostInterval, levelFlash, frame;
+
+  function isTunnelRow(y) {
+    return TUNNEL_ROWS.includes(y);
+  }
+
+  function tunnelTarget(x, y, dx) {
+    if (!isTunnelRow(y) || dx === 0) return x + dx;
+    let nx = x + dx;
+    if (nx >= 0 && nx < COLS && !isWall(nx, y)) return nx;
+    if (dx < 0) {
+      for (let i = COLS - 1; i >= 0; i--) if (!isWall(i, y)) return i;
+    } else {
+      for (let i = 0; i < COLS; i++) if (!isWall(i, y)) return i;
+    }
+    return nx;
+  }
 
   function isWall(x, y) {
     if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return true;
@@ -147,30 +164,44 @@
   });
 
   function canMove(x, y, dx, dy) {
-    return !isWall(x + dx, y + dy);
+    const ny = y + dy;
+    if (ny < 0 || ny >= ROWS) return false;
+    if (dy !== 0) return !isWall(x, ny);
+    const nx = tunnelTarget(x, y, dx);
+    return nx >= 0 && nx < COLS && !isWall(nx, y);
+  }
+
+  function applyPosition(entity, nx, ny) {
+    entity.fromX = entity.x;
+    entity.fromY = entity.y;
+    if (Math.abs(nx - entity.x) > COLS / 2) {
+      entity.fromX = nx;
+      entity.fromY = ny;
+    }
+    entity.x = nx;
+    entity.y = ny;
+    entity.movedAt = frame;
   }
 
   function moveGhost(g) {
     const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => canMove(g.x, g.y, dx, dy));
     if (!opts.length) return;
 
-    // Avoid reversing unless it's the only option
     const filtered = opts.filter(([dx, dy]) => !(g.lastDx === -dx && g.lastDy === -dy) || opts.length === 1);
     const choices = filtered.length ? filtered : opts;
 
     choices.sort((a, b) => {
-      const da = Math.hypot(pac.x - (g.x + a[0]), pac.y - (g.y + a[1]));
-      const db = Math.hypot(pac.x - (g.x + b[0]), pac.y - (g.y + b[1]));
+      const da = Math.hypot(pac.x - tunnelTarget(g.x, g.y, a[0]), pac.y - (g.y + a[1]));
+      const db = Math.hypot(pac.x - tunnelTarget(g.x, g.y, b[0]), pac.y - (g.y + b[1]));
       return da - db + (Math.random() - 0.5) * 0.4;
     });
 
-    g.fromX = g.x;
-    g.fromY = g.y;
-    g.x += choices[0][0];
-    g.y += choices[0][1];
-    g.lastDx = choices[0][0];
-    g.lastDy = choices[0][1];
-    g.movedAt = frame;
+    const dx = choices[0][0], dy = choices[0][1];
+    const nx = dy === 0 ? tunnelTarget(g.x, g.y, dx) : g.x + dx;
+    const ny = g.y + dy;
+    applyPosition(g, nx, ny);
+    g.lastDx = dx;
+    g.lastDy = dy;
   }
 
   function lerpPos(from, to, movedAt, interval) {
@@ -195,11 +226,9 @@
 
     if (canMove(pac.x, pac.y, nextDir.x, nextDir.y)) dir = nextDir;
     if (canMove(pac.x, pac.y, dir.x, dir.y)) {
-      pac.fromX = pac.x;
-      pac.fromY = pac.y;
-      pac.x += dir.x;
-      pac.y += dir.y;
-      pac.movedAt = frame;
+      const nx = dir.y === 0 ? tunnelTarget(pac.x, pac.y, dir.x) : pac.x + dir.x;
+      const ny = pac.y + dir.y;
+      applyPosition(pac, nx, ny);
       if (isPellet(pac.x, pac.y)) {
         maze[pac.y] = maze[pac.y].slice(0, pac.x) + ' ' + maze[pac.y].slice(pac.x + 1);
         dots--;
