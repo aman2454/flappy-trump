@@ -35,54 +35,76 @@
     } while (snake.some(s => s.x === food.x && s.y === food.y));
   }
 
-  function setDir(x, y) {
-    if (state === STATE.DEAD) return;
-    if (state === STATE.READY) {
-      state = STATE.PLAYING;
-      instructions.classList.add('hidden');
-      overlay.querySelector('h1').classList.add('hidden');
+  function startPlaying() {
+    state = STATE.PLAYING;
+    instructions.classList.add('hidden');
+    overlay.querySelector('h1').classList.add('hidden');
+  }
+
+  function tryRestart() {
+    if (state === STATE.DEAD) {
+      reset();
+      startPlaying();
+      return true;
     }
+    if (state === STATE.READY) {
+      startPlaying();
+      return true;
+    }
+    return false;
+  }
+
+  function setDir(x, y) {
+    if (state !== STATE.PLAYING) return;
     if (dir.x + x === 0 && dir.y + y === 0) return;
     nextDir = { x, y };
   }
 
   document.querySelectorAll('#dpad .touch-btn').forEach(btn => {
-    const go = (e) => { e.preventDefault(); const d = btn.dataset.dir; if (d === 'up') setDir(0, -1); if (d === 'down') setDir(0, 1); if (d === 'left') setDir(-1, 0); if (d === 'right') setDir(1, 0); };
+    const go = (e) => {
+      e.preventDefault();
+      if (tryRestart()) return;
+      const d = btn.dataset.dir;
+      if (d === 'up') setDir(0, -1);
+      if (d === 'down') setDir(0, 1);
+      if (d === 'left') setDir(-1, 0);
+      if (d === 'right') setDir(1, 0);
+    };
     btn.addEventListener('touchstart', go, { passive: false });
     btn.addEventListener('click', go);
   });
 
   let touchStart = null;
-  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: false });
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, { passive: false });
+
   canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
     if (!touchStart) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStart.x;
     const dy = t.clientY - touchStart.y;
-    if (Math.abs(dx) < 20 && Math.abs(dy) < 20) { setDir(dir.x, dir.y); touchStart = null; return; }
+    touchStart = null;
+
+    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) {
+      tryRestart();
+      return;
+    }
+    if (state !== STATE.PLAYING) return;
     if (Math.abs(dx) > Math.abs(dy)) setDir(dx > 0 ? 1 : -1, 0);
     else setDir(0, dy > 0 ? 1 : -1);
-    touchStart = null;
-  });
+  }, { passive: false });
+
+  canvas.addEventListener('click', () => tryRestart());
 
   document.addEventListener('keydown', (e) => {
+    if (tryRestart()) return;
     if (e.code === 'ArrowUp') setDir(0, -1);
     if (e.code === 'ArrowDown') setDir(0, 1);
     if (e.code === 'ArrowLeft') setDir(-1, 0);
     if (e.code === 'ArrowRight') setDir(1, 0);
-  });
-
-  canvas.addEventListener('click', () => {
-    if (state === STATE.DEAD) {
-      reset();
-      state = STATE.READY;
-      instructions.classList.remove('hidden');
-      overlay.querySelector('h1').classList.remove('hidden');
-    } else if (state === STATE.READY) {
-      state = STATE.PLAYING;
-      instructions.classList.add('hidden');
-      overlay.querySelector('h1').classList.add('hidden');
-    }
   });
 
   function update() {

@@ -5,9 +5,12 @@
   const ctx = canvas.getContext('2d');
   const instructions = document.getElementById('instructions');
   const scoreDisplay = document.getElementById('score-display');
+  const overlayTitle = document.querySelector('#overlay h1');
 
   const W = canvas.width, H = canvas.height;
-  let player, invaders, bullets, enemyBullets, score, frame, dir, moveDown, gameOver, started;
+  let player, invaders, bullets, enemyBullets, score, frame, dir, gameOver, started;
+  let touchStart = null;
+  let touchMoved = false;
 
   function reset() {
     player = { x: W / 2, w: 28, h: 14, y: H - 40, cooldown: 0 };
@@ -23,63 +26,112 @@
     scoreDisplay.textContent = '0';
     frame = 0;
     dir = 1;
-    moveDown = false;
     gameOver = false;
     started = false;
+  }
+
+  function showMenu() {
+    instructions.classList.remove('hidden');
+    overlayTitle.classList.remove('hidden');
+  }
+
+  function hideMenu() {
+    instructions.classList.add('hidden');
+    overlayTitle.classList.add('hidden');
   }
 
   function start() {
     if (!started && !gameOver) {
       started = true;
-      instructions.classList.add('hidden');
-      document.querySelector('#overlay h1').classList.add('hidden');
+      hideMenu();
     }
   }
 
-  let keys = { left: false, right: false };
-  document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; start(); }, { passive: false });
-  document.getElementById('btn-left').addEventListener('touchend', () => keys.left = false);
-  document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; start(); }, { passive: false });
-  document.getElementById('btn-right').addEventListener('touchend', () => keys.right = false);
-  document.getElementById('btn-fire').addEventListener('touchstart', (e) => { e.preventDefault(); fire(); start(); }, { passive: false });
-  document.getElementById('btn-fire').addEventListener('click', () => { fire(); start(); });
+  function tryRetry() {
+    if (!gameOver) return false;
+    reset();
+    showMenu();
+    return true;
+  }
+
+  function movePlayerFromClientX(clientX) {
+    const rect = canvas.getBoundingClientRect();
+    player.x = ((clientX - rect.left) / rect.width) * W;
+    player.x = Math.max(14, Math.min(W - 14, player.x));
+  }
 
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    const x = e.touches[0].clientX;
-    const rect = canvas.getBoundingClientRect();
-    const rel = (x - rect.left) / rect.width;
-    keys.left = rel < 0.35;
-    keys.right = rel > 0.65;
-    if (rel >= 0.35 && rel <= 0.65) fire();
+    if (gameOver) {
+      tryRetry();
+      return;
+    }
+    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    touchMoved = false;
+    movePlayerFromClientX(e.touches[0].clientX);
     start();
   }, { passive: false });
-  canvas.addEventListener('touchend', () => { keys.left = false; keys.right = false; });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!touchStart || gameOver || !started) return;
+    touchMoved = true;
+    movePlayerFromClientX(e.touches[0].clientX);
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    touchStart = null;
+
+    if (!touchMoved && Math.abs(dx) < 28 && Math.abs(dy) < 28 && started && !gameOver) {
+      fire();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!started || gameOver) return;
+    movePlayerFromClientX(e.clientX);
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (gameOver) {
+      tryRetry();
+      return;
+    }
+    if (!started) {
+      start();
+      return;
+    }
+    movePlayerFromClientX(e.clientX);
+    fire();
+  });
 
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'ArrowLeft') keys.left = true;
-    if (e.code === 'ArrowRight') keys.right = true;
-    if (e.code === 'Space') { e.preventDefault(); fire(); start(); }
-  });
-  document.addEventListener('keyup', (e) => {
-    if (e.code === 'ArrowLeft') keys.left = false;
-    if (e.code === 'ArrowRight') keys.right = false;
+    if (gameOver && (e.code === 'Space' || e.code === 'Enter')) {
+      tryRetry();
+      return;
+    }
+    if (!started) start();
+    if (e.code === 'ArrowLeft') player.x -= 12;
+    if (e.code === 'ArrowRight') player.x += 12;
+    if (e.code === 'Space') { e.preventDefault(); fire(); }
+    player.x = Math.max(14, Math.min(W - 14, player.x));
   });
 
   function fire() {
-    if (player.cooldown > 0 || gameOver) return;
+    if (!started || gameOver || player.cooldown > 0) return;
     bullets.push({ x: player.x, y: player.y - 4, vy: -6 });
-    player.cooldown = 20;
+    player.cooldown = 18;
   }
 
   function update() {
     if (!started || gameOver) return;
     frame++;
     if (player.cooldown > 0) player.cooldown--;
-
-    if (keys.left) player.x -= 4;
-    if (keys.right) player.x += 4;
-    player.x = Math.max(14, Math.min(W - 14, player.x));
 
     if (frame % 30 === 0) {
       const alive = invaders.filter(i => i.alive);
@@ -172,7 +224,6 @@
   }
 
   reset();
-  canvas.addEventListener('click', () => { if (gameOver) { reset(); started = false; instructions.classList.remove('hidden'); document.querySelector('#overlay h1').classList.remove('hidden'); } });
   function loop() { update(); draw(); requestAnimationFrame(loop); }
   loop();
 })();
