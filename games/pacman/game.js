@@ -41,7 +41,7 @@
   const MOVE_INTERVAL = 14;
 
   let pac, dir, nextDir, ghosts, dots, score, lives, level, playing, dead, touchStart, tick, maze;
-  let ghostInterval, levelFlash;
+  let ghostInterval, levelFlash, frame;
 
   function isWall(x, y) {
     if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return true;
@@ -61,10 +61,10 @@
 
   function makeGhosts() {
     return [
-      { x: 8, y: 9, color: '#ff0000' },
-      { x: 9, y: 9, color: '#ffb8ff' },
-      { x: 10, y: 9, color: '#00ffff' },
-      { x: 11, y: 9, color: '#ffb852' },
+      { x: 8, y: 9, fromX: 8, fromY: 9, color: '#ff0000', movedAt: 0 },
+      { x: 9, y: 9, fromX: 9, fromY: 9, color: '#ffb8ff', movedAt: 0 },
+      { x: 10, y: 9, fromX: 10, fromY: 9, color: '#00ffff', movedAt: 0 },
+      { x: 11, y: 9, fromX: 11, fromY: 9, color: '#ffb852', movedAt: 0 },
     ];
   }
 
@@ -73,7 +73,7 @@
   }
 
   function resetPositions() {
-    pac = { x: 9, y: 15, mouth: 0 };
+    pac = { x: 9, y: 15, fromX: 9, fromY: 15, mouth: 0, movedAt: 0 };
     dir = { x: 0, y: 0 };
     nextDir = { x: 0, y: 0 };
     ghosts = makeGhosts();
@@ -91,6 +91,7 @@
     playing = false;
     dead = false;
     tick = 0;
+    frame = 0;
     scoreDisplay.textContent = '0 · L1';
     instructions.classList.remove('hidden');
     title.classList.remove('hidden');
@@ -163,13 +164,23 @@
       return da - db + (Math.random() - 0.5) * 0.4;
     });
 
+    g.fromX = g.x;
+    g.fromY = g.y;
     g.x += choices[0][0];
     g.y += choices[0][1];
     g.lastDx = choices[0][0];
     g.lastDy = choices[0][1];
+    g.movedAt = frame;
+  }
+
+  function lerpPos(from, to, movedAt, interval) {
+    const t = Math.min(1, (frame - movedAt) / interval);
+    return from + (to - from) * t;
   }
 
   function update() {
+    frame++;
+
     if (!playing || dead) return;
 
     if (levelFlash > 0) {
@@ -177,13 +188,18 @@
       return;
     }
 
+    pac.mouth = (pac.mouth + 0.35) % 6;
+
     tick++;
     if (tick % MOVE_INTERVAL !== 0) return;
 
     if (canMove(pac.x, pac.y, nextDir.x, nextDir.y)) dir = nextDir;
     if (canMove(pac.x, pac.y, dir.x, dir.y)) {
+      pac.fromX = pac.x;
+      pac.fromY = pac.y;
       pac.x += dir.x;
       pac.y += dir.y;
+      pac.movedAt = frame;
       if (isPellet(pac.x, pac.y)) {
         maze[pac.y] = maze[pac.y].slice(0, pac.x) + ' ' + maze[pac.y].slice(pac.x + 1);
         dots--;
@@ -200,14 +216,13 @@
         lives--;
         if (lives <= 0) { dead = true; playing = false; }
         else {
-          pac = { x: 9, y: 15, mouth: 0 };
+          pac = { x: 9, y: 15, fromX: 9, fromY: 15, mouth: 0, movedAt: frame };
           dir = { x: 0, y: 0 };
           nextDir = { x: 0, y: 0 };
           ghosts = makeGhosts();
         }
       }
     }
-    pac.mouth = (pac.mouth + 1) % 6;
   }
 
   function drawPac(px, py, r) {
@@ -286,8 +301,14 @@
     }
 
     const r = CELL * 0.4;
-    drawPac(OX + pac.x * CELL + CELL / 2, OY + pac.y * CELL + CELL / 2, r);
-    ghosts.forEach(g => drawGhost(g, OX + g.x * CELL + CELL / 2, OY + g.y * CELL + CELL / 2, r * 0.95));
+    const pacX = lerpPos(pac.fromX, pac.x, pac.movedAt, MOVE_INTERVAL);
+    const pacY = lerpPos(pac.fromY, pac.y, pac.movedAt, MOVE_INTERVAL);
+    drawPac(OX + pacX * CELL + CELL / 2, OY + pacY * CELL + CELL / 2, r);
+    ghosts.forEach(g => {
+      const gx = lerpPos(g.fromX, g.x, g.movedAt, ghostInterval);
+      const gy = lerpPos(g.fromY, g.y, g.movedAt, ghostInterval);
+      drawGhost(g, OX + gx * CELL + CELL / 2, OY + gy * CELL + CELL / 2, r * 0.95);
+    });
 
     ctx.fillStyle = '#fff';
     ctx.font = '14px Arial';
