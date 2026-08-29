@@ -10,7 +10,7 @@
   const W = canvas.width, H = canvas.height;
   const FIRE_COOLDOWN = 26;
 
-  let player, enemies, bullets, enemyBullets, score, frame, playing, dead, formDir;
+  let player, enemies, bullets, enemyBullets, score, frame, playing, dead, formDir, diveCooldown;
 
   function reset() {
     player = { x: W / 2, y: H - 50, w: 24, cooldown: 0 };
@@ -22,6 +22,7 @@
     playing = false;
     dead = false;
     formDir = 1;
+    diveCooldown = 120;
     spawnFormation();
     instructions.classList.remove('hidden');
     title.classList.remove('hidden');
@@ -66,7 +67,9 @@
   canvas.addEventListener('click', start);
 
   function startDive(enemy) {
+    if (enemies.some(e => e.alive && e.state === 'diving')) return;
     enemy.state = 'diving';
+    diveCooldown = 420;
     const dx = player.x - (enemy.x + enemy.w / 2);
     const dy = player.y - enemy.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -90,6 +93,8 @@
     enemyBullets.forEach(b => { b.y += b.vy; });
     enemyBullets = enemyBullets.filter(b => b.y < H + 10 && b.y > -10);
 
+    if (diveCooldown > 0) diveCooldown--;
+
     const formation = enemies.filter(e => e.alive && e.state === 'formation');
     if (formation.length) {
       let hitEdge = false;
@@ -107,7 +112,7 @@
         }
       }
 
-      if (frame % 180 === 0 && Math.random() < 0.55) {
+      if (diveCooldown <= 0 && frame % 120 === 0 && Math.random() < 0.12) {
         const divers = formation.filter(e => e.y > 60);
         if (divers.length) startDive(divers[Math.floor(Math.random() * divers.length)]);
       }
@@ -123,12 +128,6 @@
           e.state = 'formation';
           e.x = e.homeX;
           e.y = e.homeY;
-        }
-      } else {
-        e.cooldown--;
-        if (e.cooldown <= 0 && Math.random() < 0.008) {
-          startDive(e);
-          e.cooldown = 200;
         }
       }
     });

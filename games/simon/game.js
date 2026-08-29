@@ -109,9 +109,12 @@
     const rect = canvas.getBoundingClientRect();
     const x = (clientX - rect.left) * (W / rect.width);
     const y = (clientY - rect.top) * (H / rect.height);
+
+    if (over) { reset(); return; }
+    if (!playing && !showing) { start(); return; }
+
     const id = padAt(x, y);
     if (id >= 0) tapPad(id);
-    else start();
   }
 
   canvas.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
@@ -143,7 +146,7 @@
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 15px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(playing ? 'Level ' + sequence.length : 'Tap a pad to start', W / 2, 22);
+    ctx.fillText(playing ? 'Level ' + sequence.length : 'Tap anywhere to start', W / 2, 22);
 
     if (over) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
