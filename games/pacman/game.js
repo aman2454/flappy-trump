@@ -39,46 +39,76 @@
   const OY = 36;
 
   const MOVE_INTERVAL = 14;
-  const GHOST_INTERVAL = 18;
 
-  let pac, dir, nextDir, ghosts, dots, score, lives, playing, won, dead, touchStart, tick, maze;
+  let pac, dir, nextDir, ghosts, dots, score, lives, level, playing, dead, touchStart, tick, maze;
+  let ghostInterval, levelFlash;
 
   function isWall(x, y) {
     if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return true;
     return maze[y][x] === '#';
   }
 
-  function isDot(x, y) {
+  function isPellet(x, y) {
     if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return false;
-    const c = maze[y][x];
-    return c === '.' || c === ' ';
+    return maze[y][x] === '.';
   }
 
-  function reset() {
+  function countPellets() {
+    let n = 0;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (maze[y][x] === '.') n++;
+    return n;
+  }
+
+  function makeGhosts() {
+    return [
+      { x: 8, y: 9, color: '#ff0000' },
+      { x: 9, y: 9, color: '#ffb8ff' },
+      { x: 10, y: 9, color: '#00ffff' },
+      { x: 11, y: 9, color: '#ffb852' },
+    ];
+  }
+
+  function resetMaze() {
     maze = MAZE_TEMPLATE.map(row => row.padEnd(COLS, ' '));
+  }
+
+  function resetPositions() {
     pac = { x: 9, y: 15, mouth: 0 };
     dir = { x: 0, y: 0 };
     nextDir = { x: 0, y: 0 };
-    ghosts = [
-      { x: 8, y: 9, color: '#ff0000', eye: '#fff' },
-      { x: 9, y: 9, color: '#ffb8ff', eye: '#fff' },
-      { x: 10, y: 9, color: '#00ffff', eye: '#fff' },
-    ];
-    dots = 0;
-    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (isDot(x, y)) dots++;
+    ghosts = makeGhosts();
+  }
+
+  function reset() {
+    resetMaze();
+    resetPositions();
+    dots = countPellets();
     score = 0;
     lives = 3;
+    level = 1;
+    ghostInterval = 12;
+    levelFlash = 0;
     playing = false;
-    won = false;
     dead = false;
     tick = 0;
-    scoreDisplay.textContent = '0';
+    scoreDisplay.textContent = '0 · L1';
     instructions.classList.remove('hidden');
     title.classList.remove('hidden');
   }
 
+  function nextLevel() {
+    level++;
+    ghostInterval = Math.max(8, 12 - level);
+    resetMaze();
+    resetPositions();
+    dots = countPellets();
+    levelFlash = 90;
+    playing = true;
+    scoreDisplay.textContent = score + ' · L' + level;
+  }
+
   function start() {
-    if (dead || won) { reset(); return; }
+    if (dead) { reset(); return; }
     if (!playing) {
       playing = true;
       instructions.classList.add('hidden');
@@ -120,19 +150,33 @@
   }
 
   function moveGhost(g) {
-    const opts = [[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy]) => canMove(g.x, g.y, dx, dy));
+    const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => canMove(g.x, g.y, dx, dy));
     if (!opts.length) return;
-    opts.sort((a, b) => {
+
+    // Avoid reversing unless it's the only option
+    const filtered = opts.filter(([dx, dy]) => !(g.lastDx === -dx && g.lastDy === -dy) || opts.length === 1);
+    const choices = filtered.length ? filtered : opts;
+
+    choices.sort((a, b) => {
       const da = Math.hypot(pac.x - (g.x + a[0]), pac.y - (g.y + a[1]));
       const db = Math.hypot(pac.x - (g.x + b[0]), pac.y - (g.y + b[1]));
-      return da - db + (Math.random() - 0.5) * 3;
+      return da - db + (Math.random() - 0.5) * 0.4;
     });
-    g.x += opts[0][0];
-    g.y += opts[0][1];
+
+    g.x += choices[0][0];
+    g.y += choices[0][1];
+    g.lastDx = choices[0][0];
+    g.lastDy = choices[0][1];
   }
 
   function update() {
-    if (!playing || dead || won) return;
+    if (!playing || dead) return;
+
+    if (levelFlash > 0) {
+      levelFlash--;
+      return;
+    }
+
     tick++;
     if (tick % MOVE_INTERVAL !== 0) return;
 
@@ -140,29 +184,34 @@
     if (canMove(pac.x, pac.y, dir.x, dir.y)) {
       pac.x += dir.x;
       pac.y += dir.y;
-      if (isDot(pac.x, pac.y)) {
+      if (isPellet(pac.x, pac.y)) {
         maze[pac.y] = maze[pac.y].slice(0, pac.x) + ' ' + maze[pac.y].slice(pac.x + 1);
         dots--;
         score += 10;
-        scoreDisplay.textContent = score;
-        if (dots <= 0) { won = true; playing = false; }
+        scoreDisplay.textContent = score + ' · L' + level;
+        if (dots <= 0) nextLevel();
       }
     }
 
-    if (tick % GHOST_INTERVAL === 0) ghosts.forEach(moveGhost);
+    if (tick % ghostInterval === 0) ghosts.forEach(moveGhost);
 
     for (const g of ghosts) {
       if (g.x === pac.x && g.y === pac.y) {
         lives--;
         if (lives <= 0) { dead = true; playing = false; }
-        else { pac = { x: 9, y: 15, mouth: 0 }; dir = { x: 0, y: 0 }; nextDir = { x: 0, y: 0 }; }
+        else {
+          pac = { x: 9, y: 15, mouth: 0 };
+          dir = { x: 0, y: 0 };
+          nextDir = { x: 0, y: 0 };
+          ghosts = makeGhosts();
+        }
       }
     }
     pac.mouth = (pac.mouth + 1) % 6;
   }
 
   function drawPac(px, py, r) {
-    const mouthOpen = pac.mouth < 3 ? 0.45 : 0.08;
+    const mouthOpen = pac.mouth < 3 ? 0.42 : 0.08;
     let angle = 0;
     if (dir.x === 1) angle = 0;
     else if (dir.x === -1) angle = Math.PI;
@@ -171,8 +220,9 @@
 
     ctx.fillStyle = '#ffff00';
     ctx.beginPath();
-    ctx.arc(px, py, r, angle + mouthOpen, angle - mouthOpen, true);
+    ctx.arc(px, py, r, angle + mouthOpen, angle - mouthOpen, false);
     ctx.lineTo(px, py);
+    ctx.closePath();
     ctx.fill();
 
     ctx.strokeStyle = '#cc9900';
@@ -244,16 +294,26 @@
     ctx.textAlign = 'left';
     ctx.fillText('Lives: ' + lives, 8, 22);
 
-    if (dead || won) {
+    if (levelFlash > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ffff00';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('LEVEL ' + level, W / 2, H / 2);
+    }
+
+    if (dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.7)';
       ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = '#ffff00';
       ctx.font = 'bold 22px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(won ? 'YOU WIN!' : 'GAME OVER', W / 2, H / 2);
+      ctx.fillText('GAME OVER', W / 2, H / 2 - 10);
       ctx.fillStyle = '#fff';
       ctx.font = '14px Arial';
-      ctx.fillText('Swipe to restart', W / 2, H / 2 + 28);
+      ctx.fillText('Score: ' + score + ' · Level ' + level, W / 2, H / 2 + 16);
+      ctx.fillText('Swipe to restart', W / 2, H / 2 + 40);
     }
   }
 
