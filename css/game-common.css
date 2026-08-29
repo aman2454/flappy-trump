@@ -22,7 +22,7 @@ body {
   top: max(10px, env(safe-area-inset-top, 0px) + 6px);
   left: max(10px, env(safe-area-inset-left, 0px) + 6px);
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.38);
   color: #fff;
   padding: 10px 16px;
   border-radius: 22px;
@@ -30,8 +30,8 @@ body {
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 0.3px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(6px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
 }
 
 .gallery-back:active {
