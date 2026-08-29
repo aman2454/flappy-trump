@@ -40,21 +40,6 @@
   let pipeTimer = 0;
   let groundOffset = 0;
 
-  const GROUND_HEADLINES = [
-    'REFLECTING POOL SAGA',
-    'IRAN WAR ESCALATION',
-    'RECORD INFLATION',
-    'TARIFF CHAOS',
-    'CRYPTO RESERVE',
-    'DOGE CUTS EVERYTHING',
-    'INDICTMENT #47',
-    'WALL FUND AWOL',
-    'IMMUNITY CLAIM',
-    'BORDER CRISIS 2.0',
-    'TRUTH SOCIAL RALLY',
-    'NUCLEAR THREAT TWEET',
-  ];
-
   let startGrace = 0;
 
   // --- Input ---
@@ -184,106 +169,21 @@
     ctx.fill();
   }
 
-  function headlineAt(index) {
-    let i = index % GROUND_HEADLINES.length;
-    if (i < 0) i += GROUND_HEADLINES.length;
-    return GROUND_HEADLINES[i];
-  }
-
   function drawGround() {
-    const groundY = H - GROUND_HEIGHT;
-    groundOffset = (groundOffset + PIPE_SPEED) % 180;
-
-    // Grass strip
+    groundOffset = (groundOffset + PIPE_SPEED) % 24;
+    ctx.fillStyle = '#ded895';
+    ctx.fillRect(0, H - GROUND_HEIGHT, W, GROUND_HEIGHT);
     ctx.fillStyle = '#73bf2e';
-    ctx.fillRect(0, groundY, W, 14);
+    ctx.fillRect(0, H - GROUND_HEIGHT, W, 14);
 
-    // Dirt / news ticker band
-    ctx.fillStyle = '#c4a574';
-    ctx.fillRect(0, groundY + 14, W, GROUND_HEIGHT - 14);
-
-    // Scrolling parody headline banners
-    const bannerW = 140;
-    const bannerH = 22;
-    const bannerY = groundY + 22;
-    for (let x = -groundOffset; x < W + bannerW; x += bannerW + 12) {
-      const idx = Math.floor(x / (bannerW + 12));
-      drawGroundBanner(x, bannerY, bannerW, bannerH, headlineAt(idx));
-    }
-
-    // Second row of smaller signs
-    const signY = groundY + 58;
-    for (let x = -groundOffset * 0.7 - 40; x < W + 100; x += 110) {
-      const idx = Math.floor((x + groundOffset * 0.7) / 110);
-      drawGroundSign(x, signY, headlineAt(idx));
-    }
-
-    // Reflecting pool puddle gag (scrolls with ground)
-    for (let x = -groundOffset * 0.5; x < W + 60; x += 90) {
-      drawReflectingPool(x, groundY + 88);
-    }
-
-    // Diagonal hatch texture
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    ctx.lineWidth = 1;
-    for (let x = -(groundOffset % 24); x < W; x += 24) {
+    ctx.strokeStyle = '#c8b86a';
+    ctx.lineWidth = 2;
+    for (let x = -groundOffset; x < W; x += 24) {
       ctx.beginPath();
-      ctx.moveTo(x, groundY + 14);
+      ctx.moveTo(x, H - GROUND_HEIGHT + 14);
       ctx.lineTo(x + 12, H);
       ctx.stroke();
     }
-  }
-
-  function drawGroundBanner(x, y, w, h, text) {
-    if (!text) return;
-
-    ctx.fillStyle = '#8b0000';
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 8px Arial Black, Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, x + w / 2, y + h / 2);
-  }
-
-  function drawGroundSign(x, y, text) {
-    if (!text) return;
-    ctx.fillStyle = '#f5f0e1';
-    ctx.fillRect(x, y, 96, 28);
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, 95, 27);
-
-    // Post
-    ctx.fillStyle = '#6b4226';
-    ctx.fillRect(x + 44, y + 28, 8, 18);
-
-    ctx.fillStyle = '#111';
-    ctx.font = 'bold 7px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const short = text.length > 18 ? text.slice(0, 16) + '...' : text;
-    ctx.fillText(short, x + 48, y + 14);
-  }
-
-  function drawReflectingPool(x, y) {
-    ctx.fillStyle = 'rgba(80,160,220,0.55)';
-    ctx.beginPath();
-    ctx.ellipse(x + 20, y, 22, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(x + 14, y - 2, 8, 3, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-    // Tiny "saga" label
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.font = '6px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('POOL', x + 20, y + 3);
   }
 
   function drawPipe(x, topHeight) {
