@@ -39,25 +39,27 @@
   const OY = 36;
 
   const MOVE_INTERVAL = 14;
-  const TUNNEL_ROWS = [7, 9, 11];
+  // Wrap only between explicit left/right tunnel mouths per row
+  const TUNNELS = {
+    7:  { left: [0, 1, 2], right: [16, 17, 18], wrapLeft: 0, wrapRight: 18 },
+    9:  { left: [0, 1, 2, 3, 4, 5], right: [11, 12, 13, 14, 15, 16, 17, 18], wrapLeft: 0, wrapRight: 18 },
+    11: { left: [0, 1, 2], right: [16, 17, 18], wrapLeft: 0, wrapRight: 18 },
+  };
 
   let pac, dir, nextDir, ghosts, dots, score, lives, level, playing, dead, touchStart, tick, maze;
   let ghostInterval, levelFlash, frame;
 
-  function isTunnelRow(y) {
-    return TUNNEL_ROWS.includes(y);
-  }
-
   function tunnelTarget(x, y, dx) {
-    if (!isTunnelRow(y) || dx === 0) return x + dx;
-    let nx = x + dx;
+    if (dx === 0) return x;
+    const nx = x + dx;
     if (nx >= 0 && nx < COLS && !isWall(nx, y)) return nx;
-    if (dx < 0) {
-      for (let i = COLS - 1; i >= 0; i--) if (!isWall(i, y)) return i;
-    } else {
-      for (let i = 0; i < COLS; i++) if (!isWall(i, y)) return i;
-    }
-    return nx;
+
+    const tunnel = TUNNELS[y];
+    if (!tunnel) return x;
+
+    if (dx < 0 && tunnel.left.includes(x)) return tunnel.wrapRight;
+    if (dx > 0 && tunnel.right.includes(x)) return tunnel.wrapLeft;
+    return x;
   }
 
   function isWall(x, y) {
@@ -164,11 +166,13 @@
   });
 
   function canMove(x, y, dx, dy) {
+    if (dx === 0 && dy === 0) return false;
     const ny = y + dy;
     if (ny < 0 || ny >= ROWS) return false;
     if (dy !== 0) return !isWall(x, ny);
     const nx = tunnelTarget(x, y, dx);
-    return nx >= 0 && nx < COLS && !isWall(nx, y);
+    if (nx === x) return false;
+    return !isWall(nx, y);
   }
 
   function applyPosition(entity, nx, ny) {
@@ -191,8 +195,12 @@
     const choices = filtered.length ? filtered : opts;
 
     choices.sort((a, b) => {
-      const da = Math.hypot(pac.x - tunnelTarget(g.x, g.y, a[0]), pac.y - (g.y + a[1]));
-      const db = Math.hypot(pac.x - tunnelTarget(g.x, g.y, b[0]), pac.y - (g.y + b[1]));
+      const ax = a[1] === 0 ? tunnelTarget(g.x, g.y, a[0]) : g.x + a[0];
+      const ay = g.y + a[1];
+      const bx = b[1] === 0 ? tunnelTarget(g.x, g.y, b[0]) : g.x + b[0];
+      const by = g.y + b[1];
+      const da = Math.hypot(pac.x - ax, pac.y - ay);
+      const db = Math.hypot(pac.x - bx, pac.y - by);
       return da - db + (Math.random() - 0.5) * 0.4;
     });
 
