@@ -13,16 +13,11 @@
     <canvas id="game-canvas" width="288" height="512"></canvas>
     <div id="overlay">
       <h1>Asteroids</h1>
-      <p id="instructions">◀ ▶ turn · ▲ thrust · 🔥 fire</p>
+      <p id="instructions">Drag left to steer · hold FIRE</p>
       <p id="score-display">0</p>
     </div>
   </div>
-  <div class="touch-controls">
-    <button class="touch-btn" id="btn-left">↺</button>
-    <button class="touch-btn" id="btn-thrust">▲</button>
-    <button class="touch-btn" id="btn-fire">🔥</button>
-    <button class="touch-btn" id="btn-right">↻</button>
-  </div>
+  <button type="button" class="astro-fire" id="btn-fire" aria-label="Fire">FIRE</button>
   <script src="../../js/viewport-fit.js"></script>
   <script src="game.js"></script>
 </body>

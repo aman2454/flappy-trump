@@ -6,10 +6,16 @@
   const instructions = document.getElementById('instructions');
   const scoreDisplay = document.getElementById('score-display');
   const overlayTitle = document.querySelector('#overlay h1');
+  const fireBtn = document.getElementById('btn-fire');
 
   const W = canvas.width, H = canvas.height;
   const SAFE_DIST = 90;
+  const STICK_RADIUS = 52;
+  const STICK_DEAD = 10;
+  const STICK_THRUST = 18;
+
   let ship, bullets, asteroids, score, lives, started, gameOver;
+  let input, joystick, fireHeld;
 
   function wrap(v, max) {
     if (v < 0) return max + v;
@@ -42,7 +48,6 @@
       x = Math.random() * W;
       y = Math.random() * H * 0.55 + 30;
     }
-    // Fallback: push away from ship
     const ang = Math.random() * Math.PI * 2;
     x = ship.x + Math.cos(ang) * (SAFE_DIST + r);
     y = ship.y + Math.sin(ang) * (SAFE_DIST + r);
@@ -56,6 +61,20 @@
     }
   }
 
+  function resetInput() {
+    input = { left: false, right: false, thrust: false, thrustPower: 0 };
+    joystick = {
+      active: false,
+      touchId: null,
+      cx: 78,
+      cy: H - 96,
+      dx: 0,
+      dy: 0,
+    };
+    fireHeld = false;
+    fireBtn.classList.remove('pressed');
+  }
+
   function reset() {
     ship = { x: W / 2, y: H / 2, vx: 0, vy: 0, angle: -Math.PI / 2, cooldown: 0, inv: 120 };
     bullets = [];
@@ -65,6 +84,7 @@
     scoreDisplay.textContent = '0';
     started = false;
     gameOver = false;
+    resetInput();
     spawnAsteroids(4);
   }
 
@@ -92,34 +112,107 @@
     return true;
   }
 
-  const input = { left: false, right: false, thrust: false };
-  function bindBtn(id, key, val) {
-    const el = document.getElementById(id);
-    el.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (gameOver) { tryRetry(); return; }
-      input[key] = val;
-      start();
-      if (key === 'fire') fire();
-    }, { passive: false });
-    el.addEventListener('touchend', () => { if (key !== 'fire') input[key] = false; });
-    el.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      if (gameOver) { tryRetry(); return; }
-      input[key] = val;
-      start();
-      if (key === 'fire') fire();
-    });
-    el.addEventListener('mouseup', () => { if (key !== 'fire') input[key] = false; });
+  function canvasPoint(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) * (W / rect.width),
+      y: (clientY - rect.top) * (H / rect.height),
+    };
   }
-  bindBtn('btn-left', 'left', true);
-  bindBtn('btn-right', 'right', true);
-  bindBtn('btn-thrust', 'thrust', true);
-  bindBtn('btn-fire', 'fire', true);
+
+  function updateJoystick(clientX, clientY) {
+    const p = canvasPoint(clientX, clientY);
+    let dx = p.x - joystick.cx;
+    let dy = p.y - joystick.cy;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > STICK_RADIUS) {
+      dx = (dx / dist) * STICK_RADIUS;
+      dy = (dy / dist) * STICK_RADIUS;
+    }
+
+    joystick.dx = dx;
+    joystick.dy = dy;
+
+    if (dist > STICK_DEAD) {
+      ship.angle = Math.atan2(dy, dx);
+      input.thrust = dist > STICK_THRUST;
+      input.thrustPower = Math.min(1, (dist - STICK_THRUST) / (STICK_RADIUS - STICK_THRUST) + 0.35);
+    } else {
+      input.thrust = false;
+      input.thrustPower = 0;
+    }
+    input.left = false;
+    input.right = false;
+  }
+
+  function endJoystick() {
+    joystick.active = false;
+    joystick.touchId = null;
+    joystick.dx = 0;
+    joystick.dy = 0;
+    input.thrust = false;
+    input.thrustPower = 0;
+  }
+
+  function bindFireButton() {
+    function press(e) {
+      e.preventDefault();
+      if (gameOver) { tryRetry(); return; }
+      fireHeld = true;
+      fireBtn.classList.add('pressed');
+      start();
+      fire();
+    }
+    function release(e) {
+      e.preventDefault();
+      fireHeld = false;
+      fireBtn.classList.remove('pressed');
+    }
+    fireBtn.addEventListener('touchstart', press, { passive: false });
+    fireBtn.addEventListener('touchend', release, { passive: false });
+    fireBtn.addEventListener('touchcancel', release, { passive: false });
+    fireBtn.addEventListener('mousedown', press);
+    fireBtn.addEventListener('mouseup', release);
+    fireBtn.addEventListener('mouseleave', release);
+  }
 
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if (gameOver) tryRetry();
+    if (gameOver) { tryRetry(); return; }
+    for (const t of e.changedTouches) {
+      const p = canvasPoint(t.clientX, t.clientY);
+      if (p.x > W * 0.58) continue;
+      if (!joystick.active) {
+        joystick.active = true;
+        joystick.touchId = t.identifier;
+        joystick.cx = Math.max(60, Math.min(W * 0.42, p.x));
+        joystick.cy = Math.max(H * 0.55, Math.min(H - 40, p.y));
+        updateJoystick(t.clientX, t.clientY);
+        start();
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!joystick.active) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier === joystick.touchId) updateJoystick(t.clientX, t.clientY);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === joystick.touchId) endJoystick();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchcancel', (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joystick.touchId) endJoystick();
+    }
   }, { passive: false });
 
   canvas.addEventListener('click', () => {
@@ -131,13 +224,13 @@
     if (gameOver && (e.code === 'Space' || e.code === 'Enter')) { tryRetry(); return; }
     if (e.code === 'ArrowLeft') input.left = true;
     if (e.code === 'ArrowRight') input.right = true;
-    if (e.code === 'ArrowUp') input.thrust = true;
+    if (e.code === 'ArrowUp') { input.thrust = true; input.thrustPower = 1; }
     if (e.code === 'Space') { e.preventDefault(); fire(); start(); }
   });
   document.addEventListener('keyup', (e) => {
     if (e.code === 'ArrowLeft') input.left = false;
     if (e.code === 'ArrowRight') input.right = false;
-    if (e.code === 'ArrowUp') input.thrust = false;
+    if (e.code === 'ArrowUp') { input.thrust = false; input.thrustPower = 0; }
   });
 
   function fire() {
@@ -165,12 +258,14 @@
     if (!started || gameOver) return;
     if (ship.cooldown > 0) ship.cooldown--;
     if (ship.inv > 0) ship.inv--;
+    if (fireHeld) fire();
 
     if (input.left) ship.angle -= 0.08;
     if (input.right) ship.angle += 0.08;
     if (input.thrust) {
-      ship.vx += Math.cos(ship.angle) * 0.15;
-      ship.vy += Math.sin(ship.angle) * 0.15;
+      const power = input.thrustPower || 1;
+      ship.vx += Math.cos(ship.angle) * 0.15 * power;
+      ship.vy += Math.sin(ship.angle) * 0.15 * power;
     }
     ship.vx *= 0.99;
     ship.vy *= 0.99;
@@ -238,6 +333,29 @@
     ctx.stroke();
   }
 
+  function drawJoystick() {
+    const { cx, cy, dx, dy, active } = joystick;
+    ctx.fillStyle = active ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, STICK_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = active ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)';
+    ctx.beginPath();
+    ctx.arc(cx + dx, cy + dy, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (!started && !gameOver) {
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('STEER', cx, cy + STICK_RADIUS + 16);
+    }
+  }
+
   function draw() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, W, H);
@@ -275,6 +393,8 @@
       ctx.stroke();
     });
 
+    drawJoystick();
+
     ctx.fillStyle = '#fff';
     ctx.font = '12px Arial';
     ctx.textAlign = 'left';
@@ -284,7 +404,7 @@
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.font = '14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('TAP TO START', W / 2, H / 2);
+      ctx.fillText('TAP TO START', W / 2, H / 2 - 30);
     }
     if (gameOver) {
       ctx.fillStyle = 'rgba(0,0,0,0.75)';
@@ -300,6 +420,7 @@
   }
 
   reset();
+  bindFireButton();
   function loop() { update(); draw(); requestAnimationFrame(loop); }
   loop();
 })();
