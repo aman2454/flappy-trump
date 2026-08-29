@@ -31,21 +31,6 @@
     canvas.height = H;
   }
 
-  // Top-left zone under the Gallery button — no food, no entry
-  function galleryFence() {
-    const zoneW = 118;
-    const zoneH = 58;
-    return {
-      cols: Math.min(COLS, Math.ceil(zoneW / CELL)),
-      rows: Math.min(ROWS, Math.ceil(zoneH / CELL)),
-    };
-  }
-
-  function isGalleryCell(x, y) {
-    const z = galleryFence();
-    return x < z.cols && y < z.rows;
-  }
-
   function reset() {
     layoutGame();
     const midX = Math.floor(COLS / 2);
@@ -66,7 +51,7 @@
   function spawnFood() {
     do {
       food = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) };
-    } while (snake.some(s => s.x === food.x && s.y === food.y) || isGalleryCell(food.x, food.y));
+    } while (snake.some(s => s.x === food.x && s.y === food.y));
   }
 
   function startPlaying() {
@@ -147,7 +132,6 @@
     const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
     if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) { die(); return; }
-    if (isGalleryCell(head.x, head.y)) { die(); return; }
     if (snake.some(s => s.x === head.x && s.y === head.y)) { die(); return; }
 
     snake.unshift(head);
@@ -165,20 +149,9 @@
     if (score > best) { best = score; localStorage.setItem('snakeBest', String(best)); }
   }
 
-  function drawGalleryFence() {
-    const z = galleryFence();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-    ctx.fillRect(0, 0, z.cols * CELL, z.rows * CELL);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, z.cols * CELL - 1, z.rows * CELL - 1);
-  }
-
   function draw() {
     ctx.fillStyle = '#142218';
     ctx.fillRect(0, 0, W, H);
-
-    drawGalleryFence();
 
     ctx.fillStyle = '#2ecc71';
     ctx.fillRect(food.x * CELL, food.y * CELL, CELL - 1, CELL - 1);
