@@ -289,11 +289,11 @@
         ctx.fillRect(w * 0.72, y, 4, 10);
       }
       ctx.fillStyle = '#c0392b';
-      ctx.fillRect(w * 0.18, h * 0.25, 16, 24);
+      ctx.fillRect(w * 0.18, h * 0.2, 16, 24);
+      ctx.fillStyle = '#2980b9';
+      ctx.fillRect(w * 0.68, h * 0.35, 16, 24);
       ctx.fillStyle = '#6bcb77';
-      ctx.fillRect(w * 0.68, h * 0.62, 16, 24);
-      ctx.fillStyle = '#3498db';
-      ctx.fillRect(w * 0.72, h * 0.15, 16, 24);
+      ctx.fillRect(w * 0.42, h * 0.62, 16, 24);
     },
 
     whack(ctx, w, h) {

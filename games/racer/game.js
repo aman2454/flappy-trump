@@ -10,14 +10,18 @@
   const W = canvas.width, H = canvas.height;
   const LANES = 4;
   const LANE_W = W / LANES;
-  const PLAYER_LANES = [2, 3];
   const ONCOMING_LANES = [0, 1];
+  const SAME_DIR_LANES = [2, 3];
   const LANE_CHANGE_SPEED = 0.11;
 
   let car, obstacles, score, speed, playing, dead, frame, roadOffset, best, touchStart;
 
   function laneCenter(lane) {
     return LANE_W * lane + LANE_W / 2;
+  }
+
+  function nearestLane(x) {
+    return Math.max(0, Math.min(LANES - 1, Math.round((x - LANE_W / 2) / LANE_W)));
   }
 
   function reset() {
@@ -53,16 +57,14 @@
 
   function nudgeLane(dir) {
     start();
-    const idx = PLAYER_LANES.indexOf(car.targetLane);
-    const next = PLAYER_LANES[idx + dir];
-    if (next !== undefined) car.targetLane = next;
+    car.targetLane = Math.max(0, Math.min(LANES - 1, car.targetLane + dir));
   }
 
   function setLaneFromX(clientX) {
     const rect = canvas.getBoundingClientRect();
     const x = (clientX - rect.left) * (W / rect.width);
     start();
-    if (x >= LANE_W * 2) car.targetLane = x < LANE_W * 3 ? 2 : 3;
+    car.targetLane = Math.max(0, Math.min(LANES - 1, Math.floor(x / LANE_W)));
   }
 
   canvas.addEventListener('touchstart', e => {
@@ -94,13 +96,13 @@
   });
 
   function spawnSameDir() {
-    const lane = PLAYER_LANES[Math.floor(Math.random() * PLAYER_LANES.length)];
+    const lane = SAME_DIR_LANES[Math.floor(Math.random() * SAME_DIR_LANES.length)];
     obstacles.push({
       lane,
       y: -90,
       w: 32,
       h: 48,
-      dir: 1,
+      oncoming: false,
       color: ['#e74c3c', '#3498db', '#f39c12'][Math.floor(Math.random() * 3)],
     });
   }
@@ -109,10 +111,10 @@
     const lane = ONCOMING_LANES[Math.floor(Math.random() * ONCOMING_LANES.length)];
     obstacles.push({
       lane,
-      y: H + 60,
+      y: -90,
       w: 32,
       h: 48,
-      dir: -1,
+      oncoming: true,
       color: ['#c0392b', '#2980b9', '#d35400'][Math.floor(Math.random() * 3)],
     });
   }
@@ -146,14 +148,14 @@
 
     const targetX = laneCenter(car.targetLane);
     car.x += (targetX - car.x) * LANE_CHANGE_SPEED;
-    car.lane = Math.abs(car.x - laneCenter(2)) < Math.abs(car.x - laneCenter(3)) ? 2 : 3;
+    car.lane = nearestLane(car.x);
 
     const spawnRate = Math.max(32, 58 - Math.floor(score / 100) * 3);
     if (frame % spawnRate === 0) spawnSameDir();
     if (frame % Math.max(40, spawnRate + 8) === 0) spawnOncoming();
 
     obstacles.forEach(o => {
-      o.y += speed * o.dir * (o.dir > 0 ? 1 : 1.15);
+      o.y += o.oncoming ? speed * 1.25 : speed * 0.7;
     });
     obstacles = obstacles.filter(o => o.y > -120 && o.y < H + 120);
 
@@ -194,7 +196,7 @@
     }
 
     obstacles.forEach(o => {
-      drawCar(laneCenter(o.lane), o.y, o.w, o.h, o.color, o.dir > 0);
+      drawCar(laneCenter(o.lane), o.y, o.w, o.h, o.color, !o.oncoming);
     });
 
     drawCar(car.x, car.y, car.w, car.h, '#6bcb77', true);
@@ -202,8 +204,8 @@
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.font = '10px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('ONCOMING', LANE_W, 14);
-    ctx.fillText('YOUR LANES', LANE_W * 3, 14);
+    ctx.fillText('ONCOMING ←', LANE_W, 14);
+    ctx.fillText('→ TRAFFIC', LANE_W * 3, 14);
 
     if (dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.65)';
