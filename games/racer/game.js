@@ -10,11 +10,25 @@
   const W = canvas.width, H = canvas.height;
   const LANES = 4;
   const LANE_W = W / LANES;
+  const PLAYER_LANES = [2, 3];
+  const ONCOMING_LANES = [0, 1];
+  const LANE_CHANGE_SPEED = 0.11;
 
-  let car, obstacles, score, speed, playing, dead, frame, roadOffset, best;
+  let car, obstacles, score, speed, playing, dead, frame, roadOffset, best, touchStart;
+
+  function laneCenter(lane) {
+    return LANE_W * lane + LANE_W / 2;
+  }
 
   function reset() {
-    car = { lane: 1, x: LANE_W * 1.5, y: H - 100, w: 36, h: 56 };
+    car = {
+      lane: 2,
+      targetLane: 2,
+      x: laneCenter(2),
+      y: H - 100,
+      w: 34,
+      h: 52,
+    };
     obstacles = [];
     score = 0;
     speed = 4;
@@ -37,23 +51,89 @@
     }
   }
 
+  function nudgeLane(dir) {
+    start();
+    const idx = PLAYER_LANES.indexOf(car.targetLane);
+    const next = PLAYER_LANES[idx + dir];
+    if (next !== undefined) car.targetLane = next;
+  }
+
   function setLaneFromX(clientX) {
     const rect = canvas.getBoundingClientRect();
     const x = (clientX - rect.left) * (W / rect.width);
-    const lane = Math.max(0, Math.min(LANES - 1, Math.floor(x / LANE_W)));
-    car.lane = lane;
-    car.x = LANE_W * lane + LANE_W / 2;
     start();
+    if (x >= LANE_W * 2) car.targetLane = x < LANE_W * 3 ? 2 : 3;
   }
 
-  canvas.addEventListener('touchmove', e => { e.preventDefault(); setLaneFromX(e.touches[0].clientX); }, { passive: false });
-  canvas.addEventListener('touchstart', e => { e.preventDefault(); setLaneFromX(e.touches[0].clientX); }, { passive: false });
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    setLaneFromX(e.touches[0].clientX);
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    setLaneFromX(e.touches[0].clientX);
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    touchStart = null;
+    if (Math.abs(dx) > 28) nudgeLane(dx > 0 ? 1 : -1);
+  }, { passive: false });
+
   canvas.addEventListener('mousemove', e => setLaneFromX(e.clientX));
   canvas.addEventListener('click', start);
 
-  function spawnObstacle() {
-    const lane = Math.floor(Math.random() * LANES);
-    obstacles.push({ lane, y: -80, w: 34, h: 50, color: ['#e74c3c','#3498db','#f39c12'][Math.floor(Math.random()*3)] });
+  document.addEventListener('keydown', e => {
+    if (e.code === 'ArrowLeft') nudgeLane(-1);
+    if (e.code === 'ArrowRight') nudgeLane(1);
+  });
+
+  function spawnSameDir() {
+    const lane = PLAYER_LANES[Math.floor(Math.random() * PLAYER_LANES.length)];
+    obstacles.push({
+      lane,
+      y: -90,
+      w: 32,
+      h: 48,
+      dir: 1,
+      color: ['#e74c3c', '#3498db', '#f39c12'][Math.floor(Math.random() * 3)],
+    });
+  }
+
+  function spawnOncoming() {
+    const lane = ONCOMING_LANES[Math.floor(Math.random() * ONCOMING_LANES.length)];
+    obstacles.push({
+      lane,
+      y: H + 60,
+      w: 32,
+      h: 48,
+      dir: -1,
+      color: ['#c0392b', '#2980b9', '#d35400'][Math.floor(Math.random() * 3)],
+    });
+  }
+
+  function drawCar(x, y, w, h, color, facingUp) {
+    ctx.fillStyle = color;
+    if (facingUp) {
+      ctx.fillRect(x - w / 2, y - h / 2, w, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillRect(x - w / 2 + 5, y - h / 2 + 6, w - 10, 10);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(x - 7, y + h / 2 - 10, 6, 8);
+      ctx.fillRect(x + 1, y + h / 2 - 10, 6, 8);
+    } else {
+      ctx.fillRect(x - w / 2, y - h / 2, w, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fillRect(x - w / 2 + 5, y + h / 2 - 16, w - 10, 10);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(x - 7, y - h / 2 + 2, 6, 8);
+      ctx.fillRect(x + 1, y - h / 2 + 2, 6, 8);
+    }
   }
 
   function update() {
@@ -64,15 +144,24 @@
     speed = 4 + Math.floor(score / 200) * 0.5;
     roadOffset = (roadOffset + speed) % 40;
 
-    if (frame % Math.max(35, 60 - Math.floor(score / 100) * 3) === 0) spawnObstacle();
+    const targetX = laneCenter(car.targetLane);
+    car.x += (targetX - car.x) * LANE_CHANGE_SPEED;
+    car.lane = Math.abs(car.x - laneCenter(2)) < Math.abs(car.x - laneCenter(3)) ? 2 : 3;
 
-    obstacles.forEach(o => { o.y += speed; });
-    obstacles = obstacles.filter(o => o.y < H + 20);
+    const spawnRate = Math.max(32, 58 - Math.floor(score / 100) * 3);
+    if (frame % spawnRate === 0) spawnSameDir();
+    if (frame % Math.max(40, spawnRate + 8) === 0) spawnOncoming();
 
-    const cx = car.x, cy = car.y;
+    obstacles.forEach(o => {
+      o.y += speed * o.dir * (o.dir > 0 ? 1 : 1.15);
+    });
+    obstacles = obstacles.filter(o => o.y > -120 && o.y < H + 120);
+
+    const cy = car.y;
     for (const o of obstacles) {
-      const ox = LANE_W * o.lane + LANE_W / 2;
-      if (Math.abs(o.lane - car.lane) < 1 && o.y + o.h > cy - car.h / 2 && o.y < cy + car.h / 2) {
+      const ox = laneCenter(o.lane);
+      const hitLane = Math.abs(ox - car.x) < LANE_W * 0.42;
+      if (hitLane && o.y + o.h / 2 > cy - car.h / 2 && o.y - o.h / 2 < cy + car.h / 2) {
         dead = true;
         playing = false;
         if (score > best) { best = score; localStorage.setItem('racerBest', String(best)); }
@@ -84,10 +173,13 @@
     ctx.fillStyle = '#3a3a3a';
     ctx.fillRect(0, 0, W, H);
 
-    for (let i = 0; i < LANES; i++) {
-      ctx.strokeStyle = '#555';
-      ctx.setLineDash([20, 20]);
-      ctx.lineWidth = 2;
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillRect(LANE_W * 2 - 4, 0, 8, H);
+
+    for (let i = 0; i <= LANES; i++) {
+      ctx.strokeStyle = i === 2 ? '#1e8449' : '#555';
+      ctx.setLineDash(i === 2 || i === 0 ? [] : [18, 18]);
+      ctx.lineWidth = i === 2 ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(i * LANE_W, 0);
       ctx.lineTo(i * LANE_W, H);
@@ -97,20 +189,21 @@
 
     ctx.fillStyle = '#fff';
     for (let y = -40 + roadOffset; y < H; y += 40) {
-      ctx.fillRect(W / 2 - 3, y, 6, 20);
+      ctx.fillRect(LANE_W - 3, y, 6, 18);
+      ctx.fillRect(LANE_W * 3 - 3, y, 6, 18);
     }
 
     obstacles.forEach(o => {
-      ctx.fillStyle = o.color;
-      ctx.fillRect(LANE_W * o.lane + LANE_W / 2 - o.w / 2, o.y, o.w, o.h);
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillRect(LANE_W * o.lane + LANE_W / 2 - o.w / 2 + 4, o.y + 8, o.w - 8, 12);
+      drawCar(laneCenter(o.lane), o.y, o.w, o.h, o.color, o.dir > 0);
     });
 
-    ctx.fillStyle = '#6bcb77';
-    ctx.fillRect(car.x - car.w / 2, car.y - car.h / 2, car.w, car.h);
-    ctx.fillStyle = '#333';
-    ctx.fillRect(car.x - 8, car.y - car.h / 2 + 8, 16, 20);
+    drawCar(car.x, car.y, car.w, car.h, '#6bcb77', true);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ONCOMING', LANE_W, 14);
+    ctx.fillText('YOUR LANES', LANE_W * 3, 14);
 
     if (dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.65)';
