@@ -314,6 +314,32 @@
       ctx.fillRect(68, 44, 3, 3);
       ctx.fillRect(76, 44, 3, 3);
     },
+
+    sand(ctx, w, h) {
+      ctx.fillStyle = '#0d0b09';
+      ctx.fillRect(0, 0, w, h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const pile = y > h * 0.55 + Math.sin(x * 0.2) * 6;
+          const water = !pile && y > h * 0.62 && x > w * 0.55;
+          const fire = y < h * 0.35 && x > 18 && x < 40 && y > 20;
+          if (pile && x < w * 0.7) {
+            ctx.fillStyle = (x + y) % 5 === 0 ? '#c9a45a' : '#d6b060';
+            ctx.fillRect(x, y, 1, 1);
+          } else if (water) {
+            ctx.fillStyle = '#408cdc';
+            ctx.fillRect(x, y, 1, 1);
+          } else if (fire && Math.random() > 0.45) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#ff7828' : '#ff5020';
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
+      }
+      ctx.fillStyle = '#6e6e76';
+      ctx.fillRect(w * 0.72, h * 0.4, 10, h * 0.6);
+      ctx.fillStyle = '#78e646';
+      ctx.fillRect(w * 0.2, h * 0.48, 8, 18);
+    },
   };
 
   function drawAll() {

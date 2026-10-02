@@ -1,0 +1,73 @@
+body { background: #1a1510; }
+#game-container { background: #1a1510; }
+#game-canvas {
+  object-fit: fill;
+  background: #0d0b09;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
+}
+
+#hud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 8px max(8px, env(safe-area-inset-left))
+           max(10px, env(safe-area-inset-bottom))
+           max(8px, env(safe-area-inset-right));
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.72) 28%);
+  pointer-events: auto;
+}
+
+#palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.el-btn {
+  min-width: 52px;
+  height: 34px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  padding: 0 8px;
+  touch-action: manipulation;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.el-btn.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
+}
+
+#tools {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.tool-btn {
+  min-width: 72px;
+  height: 32px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  touch-action: manipulation;
+}
+
+.tool-btn:active {
+  background: rgba(255, 255, 255, 0.25);
+}

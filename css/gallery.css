@@ -98,6 +98,7 @@ body {
 .game-thumb.galaga { background: linear-gradient(180deg, #050510, #1a1040); }
 .game-thumb.racer { background: linear-gradient(180deg, #444, #222); }
 .game-thumb.whack { background: linear-gradient(180deg, #5d4037, #3e2723); }
+.game-thumb.sand { background: linear-gradient(180deg, #2a2118, #1a1510); }
 
 .game-info {
   padding: 12px 14px 14px;
